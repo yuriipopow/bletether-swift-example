@@ -12,9 +12,11 @@ The app ([`Sources/BLEScannerApp.swift`](Sources/BLEScannerApp.swift)) talks to
 has no idea SimBle exists.
 
 When it sees the recorded **SimBle Demo Sensor** it connects, reads the Battery Level
-(0x2A19), and logs a `SIMBLE_SELFTEST` marker. That is what CI checks: a green run
-means a real CoreBluetooth session — scan → connect → discover → read — completed on a
-hosted runner with no radio and no device in the room.
+(0x2A19), and shows it. A native XCUITest
+([`UITests/BLEScannerUITests.swift`](UITests/BLEScannerUITests.swift)) drives the app
+and asserts that it read `Battery: 100%`. That is what CI runs — a plain
+`xcodebuild test`: a green run means a real CoreBluetooth session, scan → connect →
+discover → read, completed on a hosted runner with no radio and no device in the room.
 
 Those values come from [`fixtures/demo.json`](fixtures/demo.json), a recording of a
 synthetic sensor.
@@ -26,8 +28,8 @@ example).
 ## How the CI works
 
 [`.github/workflows/test.yml`](.github/workflows/test.yml): generate the project with
-`xcodegen`, boot a simulator, serve the fixture with the SimBle action, build, launch,
-and wait for the self-test marker.
+`xcodegen`, boot a simulator, serve the fixture with the SimBle action, then run
+`xcodebuild test`.
 
 ```yaml
 - uses: yuriipopow/simble@v1       # serve the recorded device to the simulator
@@ -36,22 +38,26 @@ and wait for the self-test marker.
     device: ${{ steps.sim.outputs.udid }}
 ```
 
+The test reads the shim and fixture paths the action set up and injects them into the
+app under test through its `launchEnvironment` (passed in with the `TEST_RUNNER_`
+prefix, which is how `xcodebuild` forwards environment to a UI test runner).
+
 ## Run it locally
 
 Needs [`xcodegen`](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`) and
-[SimBle.app](https://github.com/yuriipopow/simble) with `simble` on your PATH.
+the built `libsimble_virtual.dylib` (from the SimBle repo).
 
 ```bash
 xcodegen generate
 UDID=$(xcrun simctl create test "iPhone 17"); xcrun simctl boot "$UDID"
-simble ci fixtures/demo.json "$UDID"
-open -a Simulator
-xcodebuild -project BLEScanner.xcodeproj -scheme BLEScanner \
-  -sdk iphonesimulator -derivedDataPath build build
-xcrun simctl install "$UDID" \
-  "$(find build -name BLEScanner.app -path '*iphonesimulator*' | head -1)"
-xcrun simctl launch "$UDID" dev.simble.example.BLEScanner
+
+TEST_RUNNER_SIMBLE_DYLIB=/path/to/build/libsimble_virtual.dylib \
+TEST_RUNNER_SIMBLE_FIXTURE_PATH="$PWD/fixtures/demo.json" \
+  xcodebuild test -project BLEScanner.xcodeproj -scheme BLEScanner \
+    -destination "id=$UDID"
 ```
+
+Or record your own device with `simble record` and point the fixture at it.
 
 The app lists the served device and reads its battery. Or record your own device with
 `simble record` and point the fixture at it.

@@ -34,50 +34,21 @@ jobs:
           fixture: fixtures/demo.json
           device: ${{ steps.sim.outputs.udid }}
 
-      - name: Build the app
-        run: |
-          xcodebuild -project BLEScanner.xcodeproj -scheme BLEScanner \
-            -configuration Release -sdk iphonesimulator -derivedDataPath build \
-            -destination 'generic/platform=iOS Simulator' build
-
-      - name: Install and launch
+      # Run the UI test. It injects SimBle into the app through its launchEnvironment,
+      # using the dylib and fixture the SimBle step set up, then asserts the app read
+      # the served device's battery. This is a plain `xcodebuild test`.
+      - name: Run the UI test
         run: |
           set -eo pipefail
           UDID="${{ steps.sim.outputs.udid }}"
-          APP=$(find build -name BLEScanner.app -path '*Release-iphonesimulator*' | head -1)
-          [ -n "$APP" ] || { echo "::error::built app not found"; exit 1; }
-          xcrun simctl install "$UDID" "$APP"
-          # Hand the app the injection the SimBle step set up. Passing it per-process
-          # here is robust regardless of how a plain simctl launch inherits the
-          # device-wide environment.
           DYLIB=$(xcrun simctl spawn "$UDID" launchctl getenv DYLD_INSERT_LIBRARIES)
           FIX=$(xcrun simctl spawn "$UDID" launchctl getenv SIMBLE_FIXTURE)
-          SIMCTL_CHILD_DYLD_INSERT_LIBRARIES="$DYLIB" \
-          SIMCTL_CHILD_SIMBLE_FIXTURE="$FIX" \
-            xcrun simctl launch "$UDID" dev.simble.example.BLEScanner
-
-      # The app auto-connects to the served device, reads its battery, and logs a
-      # SIMBLE_SELFTEST marker. Poll for it — success means a real CoreBluetooth
-      # session completed on a hosted runner with no hardware.
-      - name: Wait for the self-test result
-        run: |
-          set -eo pipefail
-          UDID="${{ steps.sim.outputs.udid }}"
-          for i in $(seq 1 30); do
-            LINE=$(xcrun simctl spawn "$UDID" log show --last 40s \
-                     --predicate 'eventMessage CONTAINS "SIMBLE_SELFTEST"' 2>/dev/null \
-                   | grep -o 'SIMBLE_SELFTEST .*' | tail -1 || true)
-            if [ -n "$LINE" ]; then
-              echo "$LINE"
-              case "$LINE" in
-                *'"ok":true'*) echo "PASS"; exit 0 ;;
-                *) echo "::error::self-test reported failure"; exit 1 ;;
-              esac
-            fi
-            sleep 2
-          done
-          echo "::error::no self-test result within the timeout"
-          exit 1
+          # TEST_RUNNER_ prefix: that is how xcodebuild forwards environment into the
+          # UI test runner, where the test reads it and injects it into the app.
+          TEST_RUNNER_SIMBLE_DYLIB="$DYLIB" \
+          TEST_RUNNER_SIMBLE_FIXTURE_PATH="$FIX" \
+            xcodebuild test -project BLEScanner.xcodeproj -scheme BLEScanner \
+              -destination "id=$UDID"
 
       - name: Tear down
         if: always() && steps.sim.outputs.udid != ''
