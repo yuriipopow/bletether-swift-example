@@ -1,0 +1,31 @@
+# xcodegen spec. `xcodegen generate` produces BLEScanner.xcodeproj (and the Info.plist)
+# from this, so neither is committed — CI regenerates them.
+name: BLEScanner
+options:
+  bundleIdPrefix: dev.simble.example
+  deploymentTarget:
+    iOS: "16.0"
+
+targets:
+  BLEScanner:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: SimBle Scanner
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        # Without this CoreBluetooth is never granted and the adapter stays down.
+        NSBluetoothAlwaysUsageDescription: This example scans for nearby Bluetooth devices.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.simble.example.BLEScanner
+        GENERATE_INFOPLIST_FILE: NO
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"

@@ -1,0 +1,84 @@
+name: bluetooth test
+
+on: [push, workflow_dispatch]
+
+jobs:
+  test:
+    # macos-26 for Xcode 26 and the iOS 26 runtime the shim targets. Free on a public
+    # repo — the public-repo discount covers Actions usage regardless of the image.
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate the Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Boot a simulator
+        id: sim
+        run: |
+          set -eo pipefail
+          # By device-type name, not identifier: the identifier list is not ordered by
+          # release, so a hardcoded one is easily paired with a runtime that refuses it.
+          UDID=$(xcrun simctl create test "iPhone 17")
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      # Serve the recorded device to that simulator.
+      - uses: yuriipopow/simble@v1
+        with:
+          fixture: fixtures/demo.json
+          device: ${{ steps.sim.outputs.udid }}
+
+      - name: Build the app
+        run: |
+          xcodebuild -project BLEScanner.xcodeproj -scheme BLEScanner \
+            -configuration Release -sdk iphonesimulator -derivedDataPath build \
+            -destination 'generic/platform=iOS Simulator' build
+
+      - name: Install and launch
+        run: |
+          set -eo pipefail
+          UDID="${{ steps.sim.outputs.udid }}"
+          APP=$(find build -name BLEScanner.app -path '*Release-iphonesimulator*' | head -1)
+          [ -n "$APP" ] || { echo "::error::built app not found"; exit 1; }
+          xcrun simctl install "$UDID" "$APP"
+          # Hand the app the injection the SimBle step set up. Passing it per-process
+          # here is robust regardless of how a plain simctl launch inherits the
+          # device-wide environment.
+          DYLIB=$(xcrun simctl spawn "$UDID" launchctl getenv DYLD_INSERT_LIBRARIES)
+          FIX=$(xcrun simctl spawn "$UDID" launchctl getenv SIMBLE_FIXTURE)
+          SIMCTL_CHILD_DYLD_INSERT_LIBRARIES="$DYLIB" \
+          SIMCTL_CHILD_SIMBLE_FIXTURE="$FIX" \
+            xcrun simctl launch "$UDID" dev.simble.example.BLEScanner
+
+      # The app auto-connects to the served device, reads its battery, and logs a
+      # SIMBLE_SELFTEST marker. Poll for it — success means a real CoreBluetooth
+      # session completed on a hosted runner with no hardware.
+      - name: Wait for the self-test result
+        run: |
+          set -eo pipefail
+          UDID="${{ steps.sim.outputs.udid }}"
+          for i in $(seq 1 30); do
+            LINE=$(xcrun simctl spawn "$UDID" log show --last 40s \
+                     --predicate 'eventMessage CONTAINS "SIMBLE_SELFTEST"' 2>/dev/null \
+                   | grep -o 'SIMBLE_SELFTEST .*' | tail -1 || true)
+            if [ -n "$LINE" ]; then
+              echo "$LINE"
+              case "$LINE" in
+                *'"ok":true'*) echo "PASS"; exit 0 ;;
+                *) echo "::error::self-test reported failure"; exit 1 ;;
+              esac
+            fi
+            sleep 2
+          done
+          echo "::error::no self-test result within the timeout"
+          exit 1
+
+      - name: Tear down
+        if: always() && steps.sim.outputs.udid != ''
+        run: xcrun simctl delete "${{ steps.sim.outputs.udid }}" || true

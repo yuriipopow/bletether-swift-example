@@ -1,0 +1,73 @@
+{
+  "device": {
+    "advertise": {
+      "connectable": true,
+      "services": [
+        "180f"
+      ]
+    },
+    "name": "SimBle Demo Sensor",
+    "rssi": -50
+  },
+  "services": [
+    {
+      "characteristics": [
+        {
+          "descriptors": [],
+          "handle": 2,
+          "notifications": [],
+          "properties": [
+            "read"
+          ],
+          "uuid": "2a29",
+          "value": "53696d426c65",
+          "valueHandle": 3
+        },
+        {
+          "descriptors": [],
+          "handle": 4,
+          "notifications": [],
+          "properties": [
+            "read"
+          ],
+          "uuid": "2a24",
+          "value": "44656d6f2053656e736f72",
+          "valueHandle": 5
+        }
+      ],
+      "handle": 1,
+      "primary": true,
+      "uuid": "180a"
+    },
+    {
+      "characteristics": [
+        {
+          "descriptors": [
+            {
+              "handle": 9,
+              "uuid": "2902"
+            }
+          ],
+          "handle": 7,
+          "notifications": [
+            "64",
+            "63",
+            "62",
+            "61"
+          ],
+          "properties": [
+            "read",
+            "notify"
+          ],
+          "uuid": "2a19",
+          "value": "64",
+          "valueHandle": 8
+        }
+      ],
+      "handle": 6,
+      "primary": true,
+      "uuid": "180f"
+    }
+  ],
+  "simble": 1
+}
