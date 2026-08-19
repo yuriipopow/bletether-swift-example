@@ -2,7 +2,7 @@
 # from this, so neither is committed — CI regenerates them.
 name: BLEScanner
 options:
-  bundleIdPrefix: dev.simble.example
+  bundleIdPrefix: dev.bletether.example
   deploymentTarget:
     iOS: "16.0"
 
@@ -15,7 +15,7 @@ targets:
     info:
       path: Sources/Info.plist
       properties:
-        CFBundleDisplayName: SimBle Scanner
+        CFBundleDisplayName: BleTether Scanner
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
@@ -23,7 +23,7 @@ targets:
         NSBluetoothAlwaysUsageDescription: This example scans for nearby Bluetooth devices.
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.simble.example.BLEScanner
+        PRODUCT_BUNDLE_IDENTIFIER: dev.bletether.example.BLEScanner
         GENERATE_INFOPLIST_FILE: NO
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -38,7 +38,7 @@ targets:
       - target: BLEScanner
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.simble.example.BLEScannerUITests
+        PRODUCT_BUNDLE_IDENTIFIER: dev.bletether.example.BLEScannerUITests
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_VERSION: "5.0"
         TEST_TARGET_NAME: BLEScanner

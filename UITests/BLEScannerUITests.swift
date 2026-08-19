@@ -1,6 +1,6 @@
 // A UI test that drives the real app and asserts it read the served device.
 //
-// The app process is the one SimBle injects into. The test injects it through the
+// The app process is the one BleTether injects into. The test injects it through the
 // app's launchEnvironment, using the dylib and fixture paths CI passes in. Those come
 // in with a TEST_RUNNER_ prefix, which is how xcodebuild forwards environment to a UI
 // test runner (the prefix may or may not be stripped, so read both). Then it waits for
@@ -17,11 +17,11 @@ final class BLEScannerUITests: XCTestCase {
 
     func testReadsBatteryFromServedDevice() {
         let app = XCUIApplication()
-        if let dylib = env("SIMBLE_DYLIB") {
+        if let dylib = env("BLETETHER_DYLIB") {
             app.launchEnvironment["DYLD_INSERT_LIBRARIES"] = dylib
         }
-        if let fixture = env("SIMBLE_FIXTURE_PATH") {
-            app.launchEnvironment["SIMBLE_FIXTURE"] = fixture
+        if let fixture = env("BLETETHER_FIXTURE_PATH") {
+            app.launchEnvironment["BLETETHER_FIXTURE"] = fixture
         }
         app.launch()
 
@@ -31,7 +31,7 @@ final class BLEScannerUITests: XCTestCase {
         let ok = battery.waitForExistence(timeout: 30)
         if !ok {
             let labels = app.staticTexts.allElementsBoundByIndex.map { $0.label }
-            NSLog("SIMBLE_UITEST on-screen labels: %@", labels.description)
+            NSLog("BLETETHER_UITEST on-screen labels: %@", labels.description)
         }
         XCTAssertTrue(
             ok, "expected the app to read Battery: 100% from the served device")

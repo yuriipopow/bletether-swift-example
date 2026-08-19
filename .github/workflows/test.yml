@@ -29,24 +29,24 @@ jobs:
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
       # Serve the recorded device to that simulator.
-      - uses: yuriipopow/simble@v1
+      - uses: yuriipopow/bletether@v1
         with:
           fixture: fixtures/demo.json
           device: ${{ steps.sim.outputs.udid }}
 
-      # Run the UI test. It injects SimBle into the app through its launchEnvironment,
-      # using the dylib and fixture the SimBle step set up, then asserts the app read
+      # Run the UI test. It injects BleTether into the app through its launchEnvironment,
+      # using the dylib and fixture the BleTether step set up, then asserts the app read
       # the served device's battery. This is a plain `xcodebuild test`.
       - name: Run the UI test
         run: |
           set -eo pipefail
           UDID="${{ steps.sim.outputs.udid }}"
           DYLIB=$(xcrun simctl spawn "$UDID" launchctl getenv DYLD_INSERT_LIBRARIES)
-          FIX=$(xcrun simctl spawn "$UDID" launchctl getenv SIMBLE_FIXTURE)
+          FIX=$(xcrun simctl spawn "$UDID" launchctl getenv BLETETHER_FIXTURE)
           # TEST_RUNNER_ prefix: that is how xcodebuild forwards environment into the
           # UI test runner, where the test reads it and injects it into the app.
-          TEST_RUNNER_SIMBLE_DYLIB="$DYLIB" \
-          TEST_RUNNER_SIMBLE_FIXTURE_PATH="$FIX" \
+          TEST_RUNNER_BLETETHER_DYLIB="$DYLIB" \
+          TEST_RUNNER_BLETETHER_FIXTURE_PATH="$FIX" \
             xcodebuild test -project BLEScanner.xcodeproj -scheme BLEScanner \
               -destination "id=$UDID"
 

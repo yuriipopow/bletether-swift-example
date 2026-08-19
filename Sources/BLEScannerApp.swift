@@ -1,9 +1,9 @@
 // A native SwiftUI BLE scanner on CoreBluetooth directly — no wrapper library.
 //
-// Nothing here is SimBle-specific: it uses CBCentralManager exactly as it would
-// against real hardware. Under SimBle a recorded device is served underneath it, and
+// Nothing here is BleTether-specific: it uses CBCentralManager exactly as it would
+// against real hardware. Under BleTether a recorded device is served underneath it, and
 // this code does not change by a line. Native Swift connects the peripheral it
-// discovered, which is the path SimBle has always supported.
+// discovered, which is the path BleTether has always supported.
 import SwiftUI
 import CoreBluetooth
 
@@ -55,7 +55,7 @@ final class Scanner: NSObject, ObservableObject,
         } else {
             devices.append(Found(id: p.identifier, name: name, rssi: RSSI.intValue))
         }
-        if name == "SimBle Demo Sensor", !autoConnected {
+        if name == "BleTether Demo Sensor", !autoConnected {
             autoConnected = true
             connect(p)
         }
@@ -105,7 +105,7 @@ final class Scanner: NSObject, ObservableObject,
         if let error { obj["error"] = error }
         let json = (try? JSONSerialization.data(withJSONObject: obj))
             .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
-        NSLog("SIMBLE_SELFTEST %@", json)
+        NSLog("BLETETHER_SELFTEST %@", json)
     }
 }
 
@@ -123,7 +123,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .navigationTitle("SimBle Scanner")
+            .navigationTitle("BleTether Scanner")
             .overlay(alignment: .top) {
                 Text(scanner.status)
                     .font(.headline)

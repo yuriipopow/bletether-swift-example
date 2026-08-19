@@ -6,7 +6,7 @@
         "180f"
       ]
     },
-    "name": "SimBle Demo Sensor",
+    "name": "BleTether Demo Sensor",
     "rssi": -50
   },
   "services": [
@@ -69,5 +69,5 @@
       "uuid": "180f"
     }
   ],
-  "simble": 1
+  "bletether": 1
 }
